@@ -1,3 +1,5 @@
+#pragma once
+
 #include <frc/kinematics/DifferentialDriveOdometry.h>
 
 #include <frc2/command/SubsystemBase.h>

@@ -10,17 +10,20 @@
 #include "subsystems/Drivebase.h"
 #include "subsystems/Lift.h"
 
-class RobotContainer {
- public:
-  RobotContainer();
+class RobotContainer
+{
+public:
+	RobotContainer();
 
-  frc2::CommandPtr GetAutonomousCommand();
+	frc2::CommandPtr GetAutonomousCommand();
 
- private:
-  void ConfigureBindings();
+	void SetupTestMode();
 
-  frc2::CommandXboxController m_driverController;
+private:
+	void ConfigureBindings();
 
-  Drivebase m_drivebase;
-  Lift m_lift;
+	frc2::CommandXboxController m_driverController;
+
+	Drivebase m_drivebase;
+	Lift m_lift;
 };

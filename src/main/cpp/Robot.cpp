@@ -42,6 +42,7 @@ void Robot::TeleopExit() {}
 
 void Robot::TestInit() {
   frc2::CommandScheduler::GetInstance().CancelAll();
+  m_container.SetupTestMode();
 }
 
 void Robot::TestPeriodic() {}

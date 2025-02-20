@@ -1,3 +1,5 @@
+#pragma once
+
 #include <units/length.h>
 #include <units/velocity.h>
 #include <units/voltage.h>
@@ -42,8 +44,9 @@ namespace LiftConstants
 {
 	// Elevator feedforward constants
 	// CURRENTLY JUST ESTIMATES
-	inline constexpr float kGravityFeedforward{ 1.91f };
-	inline constexpr float kP = 0.1f;
+	inline constexpr float kGravityFeedforward{ 0.5f };
+	inline constexpr float kP = 0.5f,
+		kD = 0.1f;
 
 	inline constexpr rev::spark::ClosedLoopSlot kPositionSlot = rev::spark::ClosedLoopSlot::kSlot0;
 }

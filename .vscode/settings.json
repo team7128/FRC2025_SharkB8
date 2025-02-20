@@ -18,5 +18,6 @@
   "files.associations": {
     "chrono": "cpp",
     "functional": "cpp"
-  }
+  },
+  "wpilib.selectDefaultSimulateExtension": false
 }

@@ -6,6 +6,8 @@
 
 #include <cmath>
 
+#include <frc/smartdashboard/SmartDashboard.h>
+
 #include <frc2/command/Commands.h>
 #include <frc2/command/RunCommand.h>
 
@@ -47,4 +49,11 @@ void RobotContainer::ConfigureBindings()
 
 frc2::CommandPtr RobotContainer::GetAutonomousCommand() {
 	return this->m_lift.homeCmd().WithInterruptBehavior(frc2::Command::InterruptionBehavior::kCancelIncoming);
+}
+
+void RobotContainer::SetupTestMode()
+{
+	static frc2::CommandPtr tuneCmd = m_lift.tuneFeedforwardCmd();
+	frc::SmartDashboard::PutData("TuneLiftFeedforward", tuneCmd.get());
+	frc::SmartDashboard::PutData("Lift Subsystem", &m_lift);
 }
