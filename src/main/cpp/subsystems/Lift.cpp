@@ -6,61 +6,41 @@
 
 #include "Constants.h"
 
-using namespace ctre::phoenix6;
+using namespace rev::spark;
 
 Lift::Lift() :
-	m_kraken(1),
-	m_homeRequest(-0.1),
-	m_moveRequest(0),
-	m_positionRequest(0_tr)
+	m_leftWinch(CANConstants::kLiftSparkIDs[0], SparkLowLevel::MotorType::kBrushless),
+	m_rightWinch(CANConstants::kLiftSparkIDs[1], SparkLowLevel::MotorType::kBrushless)
 {
-	configs::TalonFXConfiguration config;
+	SparkBaseConfig sparkConfig;
 
-	configs::Slot0Configs slot0Configs;
+	sparkConfig.SetIdleMode(SparkBaseConfig::IdleMode::kBrake);
+	sparkConfig.encoder.CountsPerRevolution(42);
 
-	slot0Configs.kG = LiftConstants::kG;
-	slot0Configs.kV = LiftConstants::kV;
-	slot0Configs.kA = LiftConstants::kA;
+	sparkConfig.closedLoop.P(LiftConstants::kP, LiftConstants::kPositionSlot);
 
-	slot0Configs.kP = 0.1;
+	m_leftWinch.Configure(sparkConfig, SparkBase::ResetMode::kResetSafeParameters, SparkBase::PersistMode::kPersistParameters);
 
-	config.WithSlot0(slot0Configs);
-
-	configs::SoftwareLimitSwitchConfigs limitConfig;
-
-	limitConfig.WithForwardSoftLimitEnable(true)
-		.WithForwardSoftLimitThreshold(1000_tr)
-		.WithReverseSoftLimitEnable(true)
-		.WithReverseSoftLimitThreshold(0_tr);
-
-	config.WithSoftwareLimitSwitch(limitConfig);
-
-	m_kraken.SetNeutralMode(signals::NeutralModeValue::Brake);
-
-	m_kraken.GetConfigurator().Apply(config);
-
-	m_homeRequest.WithLimitReverseMotion(false);
-
-	m_moveRequest.WithLimitForwardMotion(true)
-		.WithLimitReverseMotion(true);
-
-	m_positionRequest.WithLimitForwardMotion(true)
-		.WithLimitReverseMotion(true);
+	sparkConfig.encoder.Inverted(true);
+	m_rightWinch.Configure(sparkConfig, SparkBase::ResetMode::kResetSafeParameters, SparkBase::PersistMode::kPersistParameters);
 
 	SetDefaultCommand(stopCmd());
 }
 
 void Lift::driveDirect(float speed)
 {
-	m_moveRequest.WithOutput(speed);
-	m_kraken.SetControl(m_moveRequest);
+	m_leftWinch.Set(speed);
+	m_rightWinch.Set(speed);
 }
 
 frc2::CommandPtr Lift::homeCmd()
 {
-	return this->Run([this] { m_kraken.SetControl(m_homeRequest); })
+	return this->Run([this] { m_leftWinch.Set(-0.1); })
 		.Until([] { return true; })
-		.AndThen(this->RunOnce([this] { m_kraken.SetPosition(0_tr); }));
+		.AndThen(this->RunOnce([this] {
+				m_leftWinch.GetEncoder().SetPosition(0.0);
+				m_rightWinch.GetEncoder().SetPosition(0.0);
+			}));
 }
 
 frc2::CommandPtr Lift::moveCmd(float speed)
@@ -68,14 +48,18 @@ frc2::CommandPtr Lift::moveCmd(float speed)
 	return this->Run(std::bind(&Lift::driveDirect, this, speed));
 }
 
-frc2::CommandPtr Lift::moveToPosCmd(units::meter_t height)
+frc2::CommandPtr Lift::moveToPosCmd(float position)
 {
-	return this->RunOnce([this, height] {
-		m_positionRequest.WithPosition(height / (5_in * std::numbers::pi) * 1_tr);
-	}).AndThen(this->Run([this] { m_kraken.SetControl(m_positionRequest); }).Until([this] { return m_kraken.GetClosedLoopError().GetValue() < 0.5; }));
+	return this->Run([this, position] {
+		m_leftWinch.GetClosedLoopController().SetReference(position, SparkBase::ControlType::kPosition, LiftConstants::kPositionSlot, LiftConstants::kGravityFeedforward);
+		m_rightWinch.GetClosedLoopController().SetReference(position, SparkBase::ControlType::kPosition, LiftConstants::kPositionSlot, LiftConstants::kGravityFeedforward);
+	});
 }
 
 frc2::CommandPtr Lift::stopCmd()
 {
-	return this->Run([this] { m_kraken.SetControl(m_stopRequest); });
+	return this->Run([this] {
+			m_leftWinch.StopMotor();
+			m_rightWinch.StopMotor();
+		});
 }

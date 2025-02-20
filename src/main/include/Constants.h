@@ -15,7 +15,10 @@ namespace CANConstants
 		4   // Back right
 	};
 
-	inline constexpr unsigned int kLiftKrakenID = 1;
+	inline constexpr unsigned int kLiftSparkIDs[2] = {
+		5,	// Left
+		6	// Right
+	};
 }
 
 namespace DriverConstants
@@ -39,7 +42,8 @@ namespace LiftConstants
 {
 	// Elevator feedforward constants
 	// CURRENTLY JUST ESTIMATES
-	inline constexpr float kG = 1.91f,
-		kV = 0.39f,
-		kA = 0.2f;
+	inline constexpr float kGravityFeedforward{ 1.91f };
+	inline constexpr float kP = 0.1f;
+
+	inline constexpr rev::spark::ClosedLoopSlot kPositionSlot = rev::spark::ClosedLoopSlot::kSlot0;
 }
