@@ -11,6 +11,7 @@
 #include <rev/sim/SparkMaxSim.h>
 
 #include "Constants.h"
+#include "util/SparkPIDTuner.h"
 
 class Lift : public frc2::SubsystemBase
 {
@@ -20,29 +21,33 @@ public:
 	virtual void SimulationPeriodic() override;
 
 	void driveDirect(float speed);
-	void driveVoltage(units::volt_t voltage);
+	void driveVoltage(units::volt_t voltage, bool useFeedforward = true);
 
 	frc2::CommandPtr homeCmd();
 	frc2::CommandPtr moveCmd(float speed);
-	frc2::CommandPtr moveToPosCmd(float position);
+	frc2::CommandPtr moveToPosCmd(float position, bool useFeedforward = true);
 	frc2::CommandPtr stopCmd();
+	frc2::CommandPtr holdPosCmd();
 
-	frc2::CommandPtr tuneFeedforwardCmd(units::volt_t initialGuess = units::volt_t(LiftConstants::kGravityFeedforward));
+	frc2::CommandPtr tuneFeedforwardCmd();
 
 private:
 	rev::spark::SparkMax m_leftWinch, m_rightWinch;
+	SparkPIDTuner m_sparkTuner;
 
 	void enableFollow();
 	void disableFollow();
 	frc2::CommandPtr enableFollowCmd();
 	frc2::CommandPtr disableFollowCmd();
 
+	float getCurrentFeedforward();
+
 	struct
 	{
 		units::volt_t kG_guess = 0_V;
-		frc::PIDController positionController{ LiftConstants::kP / 12, 0.0, LiftConstants::kD / 12 };
-		frc::PIDController tuningController{ 0.005, 0.0, 0.0 };
-		const float positionTarget = 10.f;
+		frc::PIDController tuningController{ LiftConstants::tune_kP, LiftConstants::tune_kI, 0.0 };
+		float positionTarget = 10.f;
+		const std::string positionTargetKey = "Lift Tune Height";
 	} m_feedforwardTuneData;
 
 	// ----- Simulation Data -----

@@ -19,28 +19,30 @@ using namespace rev::spark;
 Lift::Lift() :
 	m_leftWinch(CANConstants::kLiftSparkIDs[0], SparkLowLevel::MotorType::kBrushless),
 	m_rightWinch(CANConstants::kLiftSparkIDs[1], SparkLowLevel::MotorType::kBrushless),
+	m_sparkTuner({ &m_leftWinch, &m_rightWinch }, LiftConstants::kP, LiftConstants::kI, LiftConstants::kD),
 	m_elevatorSim(m_simMotor, 12.75, 10_kg, 25_mm, 0_m, 2_m, true, 0_m),
 	m_simSpark(&m_leftWinch, &m_simMotor)
 {
 	SparkMaxConfig sparkConfig;
 
 	sparkConfig.SetIdleMode(SparkBaseConfig::IdleMode::kBrake)
-		.Inverted(true);
+		.Inverted(false);
 
-	sparkConfig.closedLoop.P(LiftConstants::kP, LiftConstants::kPositionSlot)
-		.D(LiftConstants::kD, LiftConstants::kPositionSlot);
+	sparkConfig.closedLoop.Pid(LiftConstants::kP, LiftConstants::kI, LiftConstants::kD, LiftConstants::kPositionSlot);
 
 	m_leftWinch.Configure(sparkConfig, SparkBase::ResetMode::kResetSafeParameters, SparkBase::PersistMode::kPersistParameters);
 
-	sparkConfig.encoder.PositionConversionFactor(-1.0)
-		.VelocityConversionFactor(-1.0);
+	// sparkConfig.encoder.PositionConversionFactor(-1.0)
+	// 	.VelocityConversionFactor(-1.0);
 	
 	m_rightWinch.Configure(sparkConfig, SparkBase::ResetMode::kResetSafeParameters, SparkBase::PersistMode::kPersistParameters);
 
-	m_feedforwardTuneData.tuningController.SetTolerance(0.02, 0.001);
-	m_feedforwardTuneData.positionController.SetTolerance(0.2, 0.1);
+	m_feedforwardTuneData.tuningController.SetTolerance(0.1, 0.02);
 
-	SetDefaultCommand(stopCmd());
+	SetDefaultCommand(holdPosCmd());
+
+	frc::SmartDashboard::PutData("Lift Spark PID", &m_sparkTuner);
+	frc::SmartDashboard::PutNumber(m_feedforwardTuneData.positionTargetKey, m_feedforwardTuneData.positionTarget);
 }
 
 void Lift::SimulationPeriodic()
@@ -56,14 +58,19 @@ void Lift::SimulationPeriodic()
 
 void Lift::driveDirect(float speed)
 {
+	enableFollow();
+
 	m_leftWinch.Set(speed);
-	m_rightWinch.Set(speed);
 }
 
-void Lift::driveVoltage(units::volt_t voltage)
+void Lift::driveVoltage(units::volt_t voltage, bool useFeedforward)
 {
+	enableFollow();
+
+	if (useFeedforward)
+		voltage += units::volt_t(getCurrentFeedforward());
+
 	m_leftWinch.SetVoltage(voltage);
-	m_rightWinch.SetVoltage(voltage);
 }
 
 frc2::CommandPtr Lift::homeCmd()
@@ -82,12 +89,13 @@ frc2::CommandPtr Lift::moveCmd(float speed)
 	return enableFollowCmd().AndThen(this->Run(std::bind(&Lift::driveDirect, this, speed)));
 }
 
-frc2::CommandPtr Lift::moveToPosCmd(float position)
+frc2::CommandPtr Lift::moveToPosCmd(float position, bool useFeedforward)
 {
 	return disableFollowCmd()
-		.AndThen(this->Run([this, position] {
-			m_leftWinch.GetClosedLoopController().SetReference(position, SparkBase::ControlType::kPosition, LiftConstants::kPositionSlot, LiftConstants::kGravityFeedforward);
-			m_rightWinch.GetClosedLoopController().SetReference(position, SparkBase::ControlType::kPosition, LiftConstants::kPositionSlot, LiftConstants::kGravityFeedforward);
+		.AndThen(this->Run([this, position, useFeedforward] {
+			static float feedforward = useFeedforward ? getCurrentFeedforward() : 0.f;
+			m_leftWinch.GetClosedLoopController().SetReference(position, SparkBase::ControlType::kPosition, LiftConstants::kPositionSlot, feedforward);
+			m_rightWinch.GetClosedLoopController().SetReference(position, SparkBase::ControlType::kPosition, LiftConstants::kPositionSlot, feedforward);
 		}));
 }
 
@@ -96,31 +104,38 @@ frc2::CommandPtr Lift::stopCmd()
 	return this->Run([this] {
 			m_leftWinch.StopMotor();
 			m_rightWinch.StopMotor();
-		});
+		}
+	);
 }
 
-frc2::CommandPtr Lift::tuneFeedforwardCmd(units::volt_t initialGuess)
+frc2::CommandPtr Lift::holdPosCmd()
+{
+	return this->Defer([this] { return moveToPosCmd(m_leftWinch.GetEncoder().GetPosition(), true); });
+}
+
+frc2::CommandPtr Lift::tuneFeedforwardCmd()
 {
 	std::vector<frc2::CommandPtr> tuningSequence;
 
 	tuningSequence.push_back(enableFollowCmd());
 
-	tuningSequence.push_back(this->RunOnce([this, initialGuess] {
-		m_feedforwardTuneData.kG_guess = initialGuess;
-		m_feedforwardTuneData.positionController.Reset();
+	tuningSequence.push_back(this->RunOnce([this] {
+		m_feedforwardTuneData.kG_guess = 0_V;
 		m_feedforwardTuneData.tuningController.Reset();
+		m_feedforwardTuneData.positionTarget = frc::SmartDashboard::GetNumber(m_feedforwardTuneData.positionTargetKey, 10.f);
+
+		frc::SmartDashboard::PutData("Feedforward Tune PID", &m_feedforwardTuneData.tuningController);
 	}));
 	
 	tuningSequence.push_back(this->Run([this] {
-		double positionOutput = m_feedforwardTuneData.positionController.Calculate(m_leftWinch.GetEncoder().GetPosition(), m_feedforwardTuneData.positionTarget);
-		double tuningOutput = m_feedforwardTuneData.tuningController.Calculate(positionOutput, 0.0);
+		double pidOut = m_feedforwardTuneData.tuningController.Calculate(m_leftWinch.GetEncoder().GetPosition(), m_feedforwardTuneData.positionTarget);
 
-		m_feedforwardTuneData.kG_guess -= units::volt_t(tuningOutput);
-
-		driveVoltage(units::volt_t(positionOutput) + m_feedforwardTuneData.kG_guess);
+		m_feedforwardTuneData.kG_guess = units::volt_t(pidOut);
+		driveVoltage(units::volt_t(pidOut), false);
 
 		frc::SmartDashboard::PutNumber("LiftFeedforward", m_feedforwardTuneData.kG_guess.value());
-	}).Until([this] { return m_feedforwardTuneData.tuningController.AtSetpoint() && m_feedforwardTuneData.positionController.AtSetpoint(); }));
+		frc::SmartDashboard::PutNumber("Position Out", pidOut);
+	}).Until([this] { return m_feedforwardTuneData.tuningController.AtSetpoint(); }));
 
 	tuningSequence.push_back(this->RunOnce([this] { wpi::outs() << "Final lift feedforward value: " << std::to_string(m_feedforwardTuneData.kG_guess.value()) << "\n"; }));
 
@@ -145,4 +160,11 @@ frc2::CommandPtr Lift::enableFollowCmd()
 frc2::CommandPtr Lift::disableFollowCmd()
 {
 	return this->RunOnce(std::bind(&Lift::disableFollow, this));
+}
+
+float Lift::getCurrentFeedforward()
+{
+	float height = m_leftWinch.GetEncoder().GetPosition();
+
+	return height < LiftConstants::kGravityHeightThreshold ? LiftConstants::kGravityFeedforwardLow : LiftConstants::kGravityFeedforwardHigh;
 }

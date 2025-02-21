@@ -26,4 +26,7 @@ private:
 
 	Drivebase m_drivebase;
 	Lift m_lift;
+
+	const std::string m_targetHeightKey = "Target Height";
+	float m_targetHeight = 0;
 };

@@ -56,4 +56,8 @@ void RobotContainer::SetupTestMode()
 	static frc2::CommandPtr tuneCmd = m_lift.tuneFeedforwardCmd();
 	frc::SmartDashboard::PutData("TuneLiftFeedforward", tuneCmd.get());
 	frc::SmartDashboard::PutData("Lift Subsystem", &m_lift);
+
+	frc::SmartDashboard::PutNumber(m_targetHeightKey, m_targetHeight);
+	static frc2::CommandPtr heightTestCmd = frc2::cmd::Defer([this] { return m_lift.moveToPosCmd(frc::SmartDashboard::GetNumber(m_targetHeightKey, 0.0)); }, { &m_lift });
+	frc::SmartDashboard::PutData("Height Test Command", heightTestCmd.get());
 }

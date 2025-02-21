@@ -42,11 +42,23 @@ namespace DrivebaseConstants
 
 namespace LiftConstants
 {
-	// Elevator feedforward constants
-	// CURRENTLY JUST ESTIMATES
-	inline constexpr float kGravityFeedforward{ 0.5f };
+	/**
+	 * Feedforward values for the low and high points
+	 * To deal with different weights on first and second stage
+	 */
+	inline constexpr float kGravityFeedforwardLow = 0.445f,
+		kGravityFeedforwardHigh = 0.f;
+	// Height to change from low to high feedforward
+	inline constexpr float kGravityHeightThreshold = 40.f;
+
+	// Elevator PID parameters
 	inline constexpr float kP = 0.5f,
-		kD = 0.1f;
+		kI = 0.f,
+		kD = 0.01f;
+	
+	// PID parameters for feedforward auto-tune
+	inline constexpr float tune_kP = 0.8f,
+		tune_kI = 0.1f;
 
 	inline constexpr rev::spark::ClosedLoopSlot kPositionSlot = rev::spark::ClosedLoopSlot::kSlot0;
 }
