@@ -39,7 +39,9 @@ SparkPIDTuner::SparkPIDTuner(std::vector<SparkMax*> sparks, float P, float I, fl
 		config.closedLoop.Pid(m_P, m_I, m_D, closedLoopSlot);
 
 		for (SparkMax *spark : m_sparks)
+		{
 			spark->Configure(config, SparkBase::ResetMode::kNoResetSafeParameters, SparkBase::PersistMode::kNoPersistParameters);
+		}
 	}))
 {}
 
@@ -49,5 +51,5 @@ void SparkPIDTuner::InitSendable(wpi::SendableBuilder &builder)
 	builder.AddFloatProperty("P", [this] { return m_P; }, [this] (float newP) { m_P = newP; frc2::CommandScheduler::GetInstance().Schedule(m_applyCmd); });
 	builder.AddFloatProperty("I", [this] { return m_I; }, [this] (float newI) { m_I = newI; frc2::CommandScheduler::GetInstance().Schedule(m_applyCmd); });
 	builder.AddFloatProperty("D", [this] { return m_D; }, [this] (float newD) { m_D = newD; frc2::CommandScheduler::GetInstance().Schedule(m_applyCmd); });
-	builder.AddIntegerProperty("Slot 0-3", [this] { return m_slot; }, [this] (float newSlot) { m_slot; });
+	builder.AddIntegerProperty("Slot 0-3", [this] { return m_slot; }, [this] (float newSlot) { m_slot = newSlot; });
 }

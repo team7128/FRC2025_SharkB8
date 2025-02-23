@@ -17,32 +17,52 @@
 using namespace rev::spark;
 
 Lift::Lift() :
-	m_leftWinch(CANConstants::kLiftSparkIDs[0], SparkLowLevel::MotorType::kBrushless),
-	m_rightWinch(CANConstants::kLiftSparkIDs[1], SparkLowLevel::MotorType::kBrushless),
+	m_leftWinch(CANConstants::kLiftSparkIDs[1], SparkLowLevel::MotorType::kBrushless),
+	m_rightWinch(CANConstants::kLiftSparkIDs[0], SparkLowLevel::MotorType::kBrushless),
 	m_sparkTuner({ &m_leftWinch, &m_rightWinch }, LiftConstants::kP, LiftConstants::kI, LiftConstants::kD),
+	m_homeCmd(homeCmd()),
 	m_elevatorSim(m_simMotor, 12.75, 10_kg, 25_mm, 0_m, 2_m, true, 0_m),
 	m_simSpark(&m_leftWinch, &m_simMotor)
 {
 	SparkMaxConfig sparkConfig;
 
-	sparkConfig.SetIdleMode(SparkBaseConfig::IdleMode::kBrake)
-		.Inverted(false);
+	sparkConfig
+		.SetIdleMode(SparkBaseConfig::IdleMode::kBrake)
+		.Inverted(true);
 
-	sparkConfig.closedLoop.Pid(LiftConstants::kP, LiftConstants::kI, LiftConstants::kD, LiftConstants::kPositionSlot);
+	sparkConfig.softLimit
+		.ReverseSoftLimit(0.0)
+		.ReverseSoftLimitEnabled(true);
+
+	sparkConfig.closedLoop
+		.Pid(LiftConstants::kP, LiftConstants::kI, LiftConstants::kD, LiftConstants::kPositionSlot);
+	
+	sparkConfig.closedLoop.maxMotion
+		.MaxVelocity(1000.0, LiftConstants::kPositionSlot)
+		.MaxAcceleration(6000.0, LiftConstants::kPositionSlot)
+		.PositionMode(MAXMotionConfig::MAXMotionPositionMode::kMAXMotionTrapezoidal, LiftConstants::kPositionSlot);
 
 	m_leftWinch.Configure(sparkConfig, SparkBase::ResetMode::kResetSafeParameters, SparkBase::PersistMode::kPersistParameters);
 
-	// sparkConfig.encoder.PositionConversionFactor(-1.0)
-	// 	.VelocityConversionFactor(-1.0);
-	
+	sparkConfig.Inverted(false);
+
 	m_rightWinch.Configure(sparkConfig, SparkBase::ResetMode::kResetSafeParameters, SparkBase::PersistMode::kPersistParameters);
 
-	m_feedforwardTuneData.tuningController.SetTolerance(0.1, 0.02);
+	m_feedforwardTuneData.tuningController.SetTolerance(0.02, 0.002);
 
-	SetDefaultCommand(holdPosCmd());
+	SetDefaultCommand(stopCmd());
 
 	frc::SmartDashboard::PutData("Lift Spark PID", &m_sparkTuner);
+	frc::SmartDashboard::PutData("Home Lift", m_homeCmd.get());
 	frc::SmartDashboard::PutNumber(m_feedforwardTuneData.positionTargetKey, m_feedforwardTuneData.positionTarget);
+}
+
+void Lift::Periodic()
+{
+	frc::SmartDashboard::PutNumber("Lift Height L", m_leftWinch.GetEncoder().GetPosition());
+	frc::SmartDashboard::PutNumber("Lift Height R", m_rightWinch.GetEncoder().GetPosition());
+	frc::SmartDashboard::PutNumber("Lift Speed L", m_leftWinch.GetEncoder().GetVelocity());
+	frc::SmartDashboard::PutNumber("Lift Speed R", m_rightWinch.GetEncoder().GetVelocity());
 }
 
 void Lift::SimulationPeriodic()
@@ -51,61 +71,61 @@ void Lift::SimulationPeriodic()
 
 	m_elevatorSim.Update(20_ms);
 
-	frc::SmartDashboard::PutNumber("SimLiftHeight", m_elevatorSim.GetPosition().value());
-
 	m_simSpark.iterate((m_elevatorSim.GetVelocity() / 25_mm * 1_tr).convert<units::rpm>().value(), frc::RobotController::GetInputVoltage(), 0.02);
 }
 
 void Lift::driveDirect(float speed)
 {
-	enableFollow();
-
 	m_leftWinch.Set(speed);
+	m_rightWinch.Set(speed);
 }
 
 void Lift::driveVoltage(units::volt_t voltage, bool useFeedforward)
 {
-	enableFollow();
-
 	if (useFeedforward)
 		voltage += units::volt_t(getCurrentFeedforward());
 
 	m_leftWinch.SetVoltage(voltage);
+	m_rightWinch.SetVoltage(voltage);
+}
+
+frc2::CommandPtr Lift::resetEncodersCmd()
+{
+	return this->RunOnce([this] {
+		m_leftWinch.GetEncoder().SetPosition(0.0);
+		m_rightWinch.GetEncoder().SetPosition(0.0);
+	});
 }
 
 frc2::CommandPtr Lift::homeCmd()
 {
-	return disableFollowCmd()
-		.AndThen(this->Run([this] { m_leftWinch.Set(-0.1); })
-			.Until([] { return true; }))
-		.AndThen(this->RunOnce([this] {
-			m_leftWinch.GetEncoder().SetPosition(0.0);
-			m_rightWinch.GetEncoder().SetPosition(0.0);
-		}));
+	return disableLimitsCmd()
+		.AndThen(moveCmd(-0.1f)
+			.Until([] { return true; }))	// TODO: Add auto homing condition
+		.AndThen(resetEncodersCmd())
+		.AndThen(enableLimitsCmd());
 }
 
 frc2::CommandPtr Lift::moveCmd(float speed)
 {
-	return enableFollowCmd().AndThen(this->Run(std::bind(&Lift::driveDirect, this, speed)));
+	return this->Run(std::bind(&Lift::driveDirect, this, speed));
 }
 
 frc2::CommandPtr Lift::moveToPosCmd(float position, bool useFeedforward)
 {
-	return disableFollowCmd()
-		.AndThen(this->Run([this, position, useFeedforward] {
+	return this->Run([this, position, useFeedforward] {
 			static float feedforward = useFeedforward ? getCurrentFeedforward() : 0.f;
-			m_leftWinch.GetClosedLoopController().SetReference(position, SparkBase::ControlType::kPosition, LiftConstants::kPositionSlot, feedforward);
-			m_rightWinch.GetClosedLoopController().SetReference(position, SparkBase::ControlType::kPosition, LiftConstants::kPositionSlot, feedforward);
-		}));
+			m_leftWinch.GetClosedLoopController().SetReference(position, SparkBase::ControlType::kMAXMotionPositionControl, LiftConstants::kPositionSlot, feedforward);
+			m_rightWinch.GetClosedLoopController().SetReference(position, SparkBase::ControlType::kMAXMotionPositionControl, LiftConstants::kPositionSlot, feedforward);
+		});
 }
 
 frc2::CommandPtr Lift::stopCmd()
 {
 	return this->Run([this] {
-			m_leftWinch.StopMotor();
-			m_rightWinch.StopMotor();
-		}
-	);
+		m_leftWinch.StopMotor();
+		m_rightWinch.StopMotor();
+	});
 }
 
 frc2::CommandPtr Lift::holdPosCmd()
@@ -116,8 +136,6 @@ frc2::CommandPtr Lift::holdPosCmd()
 frc2::CommandPtr Lift::tuneFeedforwardCmd()
 {
 	std::vector<frc2::CommandPtr> tuningSequence;
-
-	tuningSequence.push_back(enableFollowCmd());
 
 	tuningSequence.push_back(this->RunOnce([this] {
 		m_feedforwardTuneData.kG_guess = 0_V;
@@ -142,29 +160,47 @@ frc2::CommandPtr Lift::tuneFeedforwardCmd()
 	return frc2::cmd::Sequence(std::move(tuningSequence));
 }
 
-void Lift::enableFollow()
-{
-	m_rightWinch.ResumeFollowerMode();
-}
-
-void Lift::disableFollow()
-{
-	m_rightWinch.PauseFollowerMode();
-}
-
-frc2::CommandPtr Lift::enableFollowCmd()
-{
-	return this->RunOnce(std::bind(&Lift::enableFollow, this));
-}
-
-frc2::CommandPtr Lift::disableFollowCmd()
-{
-	return this->RunOnce(std::bind(&Lift::disableFollow, this));
-}
-
 float Lift::getCurrentFeedforward()
 {
 	float height = m_leftWinch.GetEncoder().GetPosition();
 
 	return height < LiftConstants::kGravityHeightThreshold ? LiftConstants::kGravityFeedforwardLow : LiftConstants::kGravityFeedforwardHigh;
+}
+
+void Lift::enableLimits()
+{
+	static bool configMade = false;
+	static SparkMaxConfig enableLimitConfig;
+	if (!configMade)
+	{
+		enableLimitConfig.softLimit.ReverseSoftLimitEnabled(true);
+		configMade = true;
+	}
+
+	m_leftWinch.Configure(enableLimitConfig, SparkBase::ResetMode::kNoResetSafeParameters, SparkBase::PersistMode::kNoPersistParameters);
+	m_rightWinch.Configure(enableLimitConfig, SparkBase::ResetMode::kNoResetSafeParameters, SparkBase::PersistMode::kNoPersistParameters);
+}
+
+void Lift::disableLimits()
+{
+	static bool configMade = false;
+	static SparkMaxConfig disableLimitConfig;
+	if (!configMade)
+	{
+		disableLimitConfig.softLimit.ReverseSoftLimitEnabled(false);
+		configMade = true;
+	}
+
+	m_leftWinch.Configure(disableLimitConfig, SparkBase::ResetMode::kNoResetSafeParameters, SparkBase::PersistMode::kNoPersistParameters);
+	m_rightWinch.Configure(disableLimitConfig, SparkBase::ResetMode::kNoResetSafeParameters, SparkBase::PersistMode::kNoPersistParameters);
+}
+
+frc2::CommandPtr Lift::enableLimitsCmd()
+{
+	return this->RunOnce(std::bind(&Lift::enableLimits, this));
+}
+
+frc2::CommandPtr Lift::disableLimitsCmd()
+{
+	return this->RunOnce(std::bind(&Lift::disableLimits, this));
 }

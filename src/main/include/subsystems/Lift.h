@@ -18,10 +18,13 @@ class Lift : public frc2::SubsystemBase
 public:
 	Lift();
 
+	virtual void Periodic() override;
 	virtual void SimulationPeriodic() override;
 
 	void driveDirect(float speed);
 	void driveVoltage(units::volt_t voltage, bool useFeedforward = true);
+
+	frc2::CommandPtr resetEncodersCmd();
 
 	frc2::CommandPtr homeCmd();
 	frc2::CommandPtr moveCmd(float speed);
@@ -31,14 +34,16 @@ public:
 
 	frc2::CommandPtr tuneFeedforwardCmd();
 
+	frc2::CommandPtr enableLimitsCmd();
+	frc2::CommandPtr disableLimitsCmd();
+
 private:
 	rev::spark::SparkMax m_leftWinch, m_rightWinch;
 	SparkPIDTuner m_sparkTuner;
+	frc2::CommandPtr m_homeCmd;
 
-	void enableFollow();
-	void disableFollow();
-	frc2::CommandPtr enableFollowCmd();
-	frc2::CommandPtr disableFollowCmd();
+	void enableLimits();
+	void disableLimits();
 
 	float getCurrentFeedforward();
 
@@ -46,7 +51,7 @@ private:
 	{
 		units::volt_t kG_guess = 0_V;
 		frc::PIDController tuningController{ LiftConstants::tune_kP, LiftConstants::tune_kI, 0.0 };
-		float positionTarget = 10.f;
+		float positionTarget = 0.3f;
 		const std::string positionTargetKey = "Lift Tune Height";
 	} m_feedforwardTuneData;
 

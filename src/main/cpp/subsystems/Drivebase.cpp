@@ -39,8 +39,8 @@ Drivebase::Drivebase() :
 
 	rightSparkConfig.Apply(leftSparkConfig);
 
-	leftSparkConfig.Inverted(true);
-	rightSparkConfig.Inverted(false);
+	leftSparkConfig.Inverted(false);
+	rightSparkConfig.Inverted(true);
 
 	m_motorFL.Configure(leftSparkConfig, SparkBase::ResetMode::kResetSafeParameters, SparkBase::PersistMode::kPersistParameters);
 	m_motorFR.Configure(rightSparkConfig, SparkBase::ResetMode::kResetSafeParameters, SparkBase::PersistMode::kPersistParameters);

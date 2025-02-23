@@ -21,6 +21,11 @@ namespace CANConstants
 		5,	// Left
 		6	// Right
 	};
+
+	inline constexpr unsigned int kClimbVictorIDs[2] = {
+		1,
+		2
+	};
 }
 
 namespace DriverConstants
@@ -46,19 +51,19 @@ namespace LiftConstants
 	 * Feedforward values for the low and high points
 	 * To deal with different weights on first and second stage
 	 */
-	inline constexpr float kGravityFeedforwardLow = 0.445f,
-		kGravityFeedforwardHigh = 0.f;
+	inline constexpr float kGravityFeedforwardLow = 0.1f,
+		kGravityFeedforwardHigh = 0.2f;
 	// Height to change from low to high feedforward
-	inline constexpr float kGravityHeightThreshold = 40.f;
+	inline constexpr float kGravityHeightThreshold = 60.f;
 
 	// Elevator PID parameters
-	inline constexpr float kP = 0.5f,
+	inline constexpr float kP = 0.2f,
 		kI = 0.f,
-		kD = 0.01f;
+		kD = 0.f;
 	
 	// PID parameters for feedforward auto-tune
-	inline constexpr float tune_kP = 0.8f,
-		tune_kI = 0.1f;
+	inline constexpr float tune_kP = 0.08f,
+		tune_kI = 0.03f;
 
 	inline constexpr rev::spark::ClosedLoopSlot kPositionSlot = rev::spark::ClosedLoopSlot::kSlot0;
 }

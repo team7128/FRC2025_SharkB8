@@ -9,6 +9,7 @@
 
 #include "subsystems/Drivebase.h"
 #include "subsystems/Lift.h"
+#include "subsystems/Climb.h"
 
 class RobotContainer
 {
@@ -18,6 +19,8 @@ public:
 	frc2::CommandPtr GetAutonomousCommand();
 
 	void SetupTestMode();
+	void Enable();
+	void Disable();
 
 private:
 	void ConfigureBindings();
@@ -26,6 +29,8 @@ private:
 
 	Drivebase m_drivebase;
 	Lift m_lift;
+	Climb m_climb;
+	frc2::CommandPtr m_liftDisableCmd;
 
 	const std::string m_targetHeightKey = "Target Height";
 	float m_targetHeight = 0;
