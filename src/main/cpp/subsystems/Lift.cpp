@@ -17,8 +17,8 @@
 using namespace rev::spark;
 
 Lift::Lift() :
-	m_leftWinch(CANConstants::kLiftSparkIDs[1], SparkLowLevel::MotorType::kBrushless),
-	m_rightWinch(CANConstants::kLiftSparkIDs[0], SparkLowLevel::MotorType::kBrushless),
+	m_leftWinch(CANConstants::kLiftSparkIDs[0], SparkLowLevel::MotorType::kBrushless),
+	m_rightWinch(CANConstants::kLiftSparkIDs[1], SparkLowLevel::MotorType::kBrushless),
 	m_sparkTuner({ &m_leftWinch, &m_rightWinch }, LiftConstants::kP, LiftConstants::kI, LiftConstants::kD),
 	m_homeCmd(homeCmd()),
 	m_elevatorSim(m_simMotor, 12.75, 10_kg, 25_mm, 0_m, 2_m, true, 0_m),
@@ -28,7 +28,7 @@ Lift::Lift() :
 
 	sparkConfig
 		.SetIdleMode(SparkBaseConfig::IdleMode::kBrake)
-		.Inverted(true);
+		.Inverted(false);
 
 	sparkConfig.softLimit
 		.ReverseSoftLimit(0.0)
@@ -44,7 +44,7 @@ Lift::Lift() :
 
 	m_leftWinch.Configure(sparkConfig, SparkBase::ResetMode::kResetSafeParameters, SparkBase::PersistMode::kPersistParameters);
 
-	sparkConfig.Inverted(false);
+	sparkConfig.Inverted(true);
 
 	m_rightWinch.Configure(sparkConfig, SparkBase::ResetMode::kResetSafeParameters, SparkBase::PersistMode::kPersistParameters);
 
