@@ -52,8 +52,10 @@ void RobotContainer::ConfigureBindings()
 	m_driverController.Back().OnTrue(m_lift.disableLimitsCmd());
 	m_driverController.Back().OnFalse(m_lift.enableLimitsCmd().AndThen(m_lift.resetEncodersCmd()));
 
-	m_driverController.LeftBumper().WhileTrue(m_climb.driveCmd(-0.4f));
-	m_driverController.RightBumper().WhileTrue(m_climb.driveCmd(0.4f));
+	m_driverController.LeftBumper().WhileTrue(m_climb.driveCmd(-0.4f).OnlyIf(std::bind(&Climb::isReleased, &m_climb)));
+	m_driverController.RightBumper().WhileTrue(m_climb.driveCmd(0.4f).OnlyIf(std::bind(&Climb::isReleased, &m_climb)));
+
+	m_driverController.Start().OnTrue(m_climb.releaseCmd());
 }
 
 frc2::CommandPtr RobotContainer::GetAutonomousCommand() {

@@ -39,7 +39,7 @@ Lift::Lift() :
 	
 	sparkConfig.closedLoop.maxMotion
 		.MaxVelocity(1000.0, LiftConstants::kPositionSlot)
-		.MaxAcceleration(6000.0, LiftConstants::kPositionSlot)
+		.MaxAcceleration(2000.0, LiftConstants::kPositionSlot)
 		.PositionMode(MAXMotionConfig::MAXMotionPositionMode::kMAXMotionTrapezoidal, LiftConstants::kPositionSlot);
 
 	m_leftWinch.Configure(sparkConfig, SparkBase::ResetMode::kResetSafeParameters, SparkBase::PersistMode::kPersistParameters);
