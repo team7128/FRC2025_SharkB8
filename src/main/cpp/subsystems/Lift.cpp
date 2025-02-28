@@ -21,7 +21,7 @@ Lift::Lift() :
 	m_rightWinch(CANConstants::kLiftSparkIDs[1], SparkLowLevel::MotorType::kBrushless),
 	m_sparkTuner({ &m_leftWinch, &m_rightWinch }, LiftConstants::kP, LiftConstants::kI, LiftConstants::kD),
 	m_homeCmd(homeCmd()),
-	m_elevatorSim(m_simMotor, 12.75, 10_kg, 25_mm, 0_m, 2_m, true, 0_m),
+	m_elevatorSim(m_simMotor, 12.75, 20_kg, 25_mm, 0_m, 2_m, true, 0_m),
 	m_simSpark(&m_leftWinch, &m_simMotor)
 {
 	SparkMaxConfig sparkConfig;
@@ -114,7 +114,7 @@ frc2::CommandPtr Lift::moveCmd(float speed)
 frc2::CommandPtr Lift::moveToPosCmd(float position, bool useFeedforward)
 {
 	return this->Run([this, position, useFeedforward] {
-			static float feedforward = useFeedforward ? getCurrentFeedforward() : 0.f;
+			float feedforward = useFeedforward ? getCurrentFeedforward() : 0.f;
 			m_leftWinch.GetClosedLoopController().SetReference(position, SparkBase::ControlType::kMAXMotionPositionControl, LiftConstants::kPositionSlot, feedforward);
 			m_rightWinch.GetClosedLoopController().SetReference(position, SparkBase::ControlType::kMAXMotionPositionControl, LiftConstants::kPositionSlot, feedforward);
 		});

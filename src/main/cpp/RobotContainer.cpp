@@ -26,14 +26,14 @@ void RobotContainer::ConfigureBindings()
 {
 	m_drivebase.SetDefaultCommand(frc2::RunCommand([this]
 		{
-			float driveSpeed = -m_driverController.GetLeftY();
-			float turnSpeed = -m_driverController.GetRightX();
+			float driveSpeed = (-m_driverController.GetLeftY())*0.5;
+			float turnSpeed = (-m_driverController.GetRightX())*0.5;
 
 			m_drivebase.arcadeDrive(driveSpeed, turnSpeed, true);
 		},
 		{ &m_drivebase }
 	).ToPtr());
-
+	/*
 	m_driverController.A().WhileTrue(frc2::RunCommand([this] {
 		m_drivebase.arcadeDrive(0.2f, 0, false);
 	}, { &m_drivebase }).ToPtr());
@@ -41,21 +41,20 @@ void RobotContainer::ConfigureBindings()
 	m_driverController.B().WhileTrue(frc2::RunCommand([this] {
 		m_drivebase.arcadeDrive(0.4f, 0, false);
 	}, { &m_drivebase }).ToPtr());
+	*/
+	//m_driverController.X().OnTrue(m_drivebase.moveCmd(5_m, 0_deg));
 
-	m_driverController.X().OnTrue(m_drivebase.moveCmd(5_m, 0_deg));
+	//m_driverController.Y().OnTrue(m_drivebase.moveCmd(-5_m, 0_deg));
 
-	m_driverController.Y().OnTrue(m_drivebase.moveCmd(-5_m, 0_deg));
-
-	m_driverController.POVUp().WhileTrue(m_lift.moveCmd(0.2f));
-	m_driverController.POVDown().WhileTrue(m_lift.moveCmd(-0.2f));
+	m_driverController.POVUp().WhileTrue(m_lift.moveCmd(0.3f));
+	m_driverController.POVDown().WhileTrue(m_lift.moveCmd(-0.3f));
 
 	m_driverController.Back().OnTrue(m_lift.disableLimitsCmd());
 	m_driverController.Back().OnFalse(m_lift.enableLimitsCmd().AndThen(m_lift.resetEncodersCmd()));
 
-	m_driverController.LeftBumper().WhileTrue(m_climb.driveCmd(-0.3f));
-	m_driverController.RightBumper().WhileTrue(m_climb.driveCmd(0.8f));
-
-	m_driverController.Start().OnTrue(m_climb.releaseCmd());
+	m_driverController.LeftBumper().WhileTrue(m_climb.driveCmd(1.0f));
+	m_driverController.A().WhileTrue(m_climb.driveCmd(0.4f));
+	m_driverController.RightBumper().WhileTrue(m_climb.driveCmd(-0.2f));
 }
 
 frc2::CommandPtr RobotContainer::GetAutonomousCommand() {

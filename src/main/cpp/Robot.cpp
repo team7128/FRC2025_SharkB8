@@ -6,7 +6,10 @@
 
 #include <frc2/command/CommandScheduler.h>
 
-Robot::Robot() {}
+Robot::Robot()
+{
+	EnableLiveWindowInTest(true);
+}
 
 void Robot::RobotPeriodic()
 {
