@@ -9,6 +9,7 @@ Climb::Climb() :
 	m_climbMotor2(CANConstants::kClimbVictorIDs[1]),
 	m_intakeRelease(0)
 {
+	m_climbMotor1.ConfigOpenloopRamp(2.0);
 	m_climbMotor1.SetInverted(InvertType::InvertMotorOutput);
 
 	m_climbMotor2.SetInverted(InvertType::FollowMaster);
@@ -42,7 +43,7 @@ frc2::CommandPtr Climb::stopCmd()
 frc2::CommandPtr Climb::releaseCmd()
 {
 	return this->RunOnce([this] {
-		m_intakeRelease.Set(1.0);
+		m_intakeRelease.Set(0.0);
 		m_released = true;
 	});
 }

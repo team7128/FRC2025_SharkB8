@@ -35,11 +35,11 @@ void RobotContainer::ConfigureBindings()
 	).ToPtr());
 
 	m_driverController.A().WhileTrue(frc2::RunCommand([this] {
-		m_drivebase.arcadeDrive(0.2, 0, false);
+		m_drivebase.arcadeDrive(0.2f, 0, false);
 	}, { &m_drivebase }).ToPtr());
 
 	m_driverController.B().WhileTrue(frc2::RunCommand([this] {
-		m_drivebase.arcadeDrive(0.4, 0, false);
+		m_drivebase.arcadeDrive(0.4f, 0, false);
 	}, { &m_drivebase }).ToPtr());
 
 	m_driverController.X().OnTrue(m_drivebase.moveCmd(5_m, 0_deg));
@@ -52,8 +52,8 @@ void RobotContainer::ConfigureBindings()
 	m_driverController.Back().OnTrue(m_lift.disableLimitsCmd());
 	m_driverController.Back().OnFalse(m_lift.enableLimitsCmd().AndThen(m_lift.resetEncodersCmd()));
 
-	m_driverController.LeftBumper().WhileTrue(m_climb.driveCmd(-0.4f).OnlyIf(std::bind(&Climb::isReleased, &m_climb)));
-	m_driverController.RightBumper().WhileTrue(m_climb.driveCmd(0.4f).OnlyIf(std::bind(&Climb::isReleased, &m_climb)));
+	m_driverController.LeftBumper().WhileTrue(m_climb.driveCmd(-0.3f));
+	m_driverController.RightBumper().WhileTrue(m_climb.driveCmd(0.8f));
 
 	m_driverController.Start().OnTrue(m_climb.releaseCmd());
 }
