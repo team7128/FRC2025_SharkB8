@@ -17,7 +17,9 @@
   "C_Cpp.default.configurationProvider": "vscode-wpilib",
   "files.associations": {
     "chrono": "cpp",
-    "functional": "cpp"
+    "functional": "cpp",
+    "complex": "cpp",
+    "*.inc": "cpp"
   },
   "wpilib.selectDefaultSimulateExtension": false,
   "wpilib.autoStartRioLog": false

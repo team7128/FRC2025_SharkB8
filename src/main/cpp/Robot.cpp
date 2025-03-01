@@ -14,7 +14,6 @@ Robot::Robot()
 void Robot::RobotPeriodic()
 {
 	frc2::CommandScheduler::GetInstance().Run();
-	EnableLiveWindowInTest(true);
 }
 
 void Robot::DisabledInit()
@@ -55,11 +54,7 @@ void Robot::TeleopPeriodic() {}
 
 void Robot::TeleopExit() {}
 
-void Robot::TestInit()
-{
-	frc2::CommandScheduler::GetInstance().CancelAll();
-	m_container.SetupTestMode();
-}
+void Robot::TestInit() {}
 
 void Robot::TestPeriodic() {}
 

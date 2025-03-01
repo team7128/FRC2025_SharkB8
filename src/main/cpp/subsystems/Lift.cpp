@@ -38,9 +38,10 @@ Lift::Lift() :
 		.Pid(LiftConstants::kP, LiftConstants::kI, LiftConstants::kD, LiftConstants::kPositionSlot);
 	
 	sparkConfig.closedLoop.maxMotion
-		.MaxVelocity(1000.0, LiftConstants::kPositionSlot)
-		.MaxAcceleration(2000.0, LiftConstants::kPositionSlot)
-		.PositionMode(MAXMotionConfig::MAXMotionPositionMode::kMAXMotionTrapezoidal, LiftConstants::kPositionSlot);
+		.MaxVelocity(LiftConstants::kMaxSpeed, LiftConstants::kPositionSlot)
+		.MaxAcceleration(LiftConstants::kMaxAccel, LiftConstants::kPositionSlot)
+		.PositionMode(MAXMotionConfig::MAXMotionPositionMode::kMAXMotionTrapezoidal, LiftConstants::kPositionSlot)
+		.AllowedClosedLoopError(0.2, LiftConstants::kPositionSlot);
 
 	m_leftWinch.Configure(sparkConfig, SparkBase::ResetMode::kResetSafeParameters, SparkBase::PersistMode::kPersistParameters);
 
@@ -50,7 +51,7 @@ Lift::Lift() :
 
 	m_feedforwardTuneData.tuningController.SetTolerance(0.02, 0.002);
 
-	SetDefaultCommand(stopCmd());
+	SetDefaultCommand(holdPosCmd());
 
 	frc::SmartDashboard::PutData("Lift Spark PID", &m_sparkTuner);
 	frc::SmartDashboard::PutData("Home Lift", m_homeCmd.get());
@@ -63,6 +64,12 @@ void Lift::Periodic()
 	frc::SmartDashboard::PutNumber("Lift Height R", m_rightWinch.GetEncoder().GetPosition());
 	frc::SmartDashboard::PutNumber("Lift Speed L", m_leftWinch.GetEncoder().GetVelocity());
 	frc::SmartDashboard::PutNumber("Lift Speed R", m_rightWinch.GetEncoder().GetVelocity());
+	frc::SmartDashboard::PutBoolean("Lift Limit L", m_leftWinch.GetReverseLimitSwitch().Get());
+	frc::SmartDashboard::PutBoolean("Lift Limit R", m_rightWinch.GetReverseLimitSwitch().Get());
+	frc::SmartDashboard::PutNumber("Lift Out L", m_leftWinch.GetAppliedOutput());
+	frc::SmartDashboard::PutNumber("Lift Out R", m_rightWinch.GetAppliedOutput());
+	frc::SmartDashboard::PutNumber("Lift Current L", m_leftWinch.GetOutputCurrent());
+	frc::SmartDashboard::PutNumber("Lift Current R", m_rightWinch.GetOutputCurrent());
 }
 
 void Lift::SimulationPeriodic()
@@ -113,11 +120,15 @@ frc2::CommandPtr Lift::moveCmd(float speed)
 
 frc2::CommandPtr Lift::moveToPosCmd(float position, bool useFeedforward)
 {
-	return this->Run([this, position, useFeedforward] {
+	return this->RunOnce([this] {
+			m_leftWinch.GetClosedLoopController().SetIAccum(0.0);
+			m_rightWinch.GetClosedLoopController().SetIAccum(0.0);
+		})
+		.AndThen(this->Run([this, position, useFeedforward] {
 			float feedforward = useFeedforward ? getCurrentFeedforward() : 0.f;
 			m_leftWinch.GetClosedLoopController().SetReference(position, SparkBase::ControlType::kMAXMotionPositionControl, LiftConstants::kPositionSlot, feedforward);
 			m_rightWinch.GetClosedLoopController().SetReference(position, SparkBase::ControlType::kMAXMotionPositionControl, LiftConstants::kPositionSlot, feedforward);
-		});
+		}));
 }
 
 frc2::CommandPtr Lift::stopCmd()
@@ -135,14 +146,14 @@ frc2::CommandPtr Lift::holdPosCmd()
 
 frc2::CommandPtr Lift::tuneFeedforwardCmd()
 {
+	frc::SmartDashboard::PutData("Feedforward Tune PID", &m_feedforwardTuneData.tuningController);
+
 	std::vector<frc2::CommandPtr> tuningSequence;
 
 	tuningSequence.push_back(this->RunOnce([this] {
 		m_feedforwardTuneData.kG_guess = 0_V;
 		m_feedforwardTuneData.tuningController.Reset();
 		m_feedforwardTuneData.positionTarget = frc::SmartDashboard::GetNumber(m_feedforwardTuneData.positionTargetKey, 10.f);
-
-		frc::SmartDashboard::PutData("Feedforward Tune PID", &m_feedforwardTuneData.tuningController);
 	}));
 	
 	tuningSequence.push_back(this->Run([this] {
@@ -197,10 +208,10 @@ void Lift::disableLimits()
 
 frc2::CommandPtr Lift::enableLimitsCmd()
 {
-	return this->RunOnce(std::bind(&Lift::enableLimits, this));
+	return frc2::cmd::RunOnce(std::bind(&Lift::enableLimits, this));
 }
 
 frc2::CommandPtr Lift::disableLimitsCmd()
 {
-	return this->RunOnce(std::bind(&Lift::disableLimits, this));
+	return frc2::cmd::RunOnce(std::bind(&Lift::disableLimits, this));
 }

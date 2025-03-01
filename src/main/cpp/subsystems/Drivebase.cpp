@@ -22,8 +22,14 @@ Drivebase::Drivebase() :
 	m_motorBR(CANConstants::kSparkDriveIDs[3], SparkLowLevel::MotorType::kBrushless),
 	m_diffDrive(m_motorFL, m_motorFR),
 	m_odometry(m_motorFL.GetEncoder(), m_motorFR.GetEncoder()),
-	m_drivePID(0.5, 0.0, 0.1, { 1_mps, 0.1_mps_sq }),
-	m_turnPID(0.02, 0.0, 0.0, { 720_deg_per_s, 10'000_deg_per_s_sq })
+	m_drivePID(
+		DrivebaseConstants::kDriveP, DrivebaseConstants::kDriveI, DrivebaseConstants::kDriveD,
+		{ DrivebaseConstants::kAutoMaxSpeed, DrivebaseConstants::kAutoMaxAccel }
+	),
+	m_turnPID(
+		DrivebaseConstants::kTurnP, DrivebaseConstants::kTurnI, DrivebaseConstants::kTurnD,
+		{ DrivebaseConstants::kAutoMaxTurnSpeed, DrivebaseConstants::kAutoMaxTurnAccel }
+	)
 {
 	SparkBaseConfig leftSparkConfig, rightSparkConfig;
 
@@ -57,10 +63,13 @@ Drivebase::Drivebase() :
 	m_turnPID.SetTolerance(15_deg, 45_deg_per_s);
 	m_turnPID.EnableContinuousInput(-180_deg, 180_deg);
 	m_turnPID.SetIZone(45);
+
+	SetDefaultCommand(stopCmd());
 }
 
 void Drivebase::Periodic()
 {
+	frc::SmartDashboard::PutNumber("Drivebase Avg Dist", m_odometry.getAvgDistance().value());
 }
 
 void Drivebase::arcadeDrive(float driveSpeed, float turnSpeed, bool square)
@@ -71,6 +80,16 @@ void Drivebase::arcadeDrive(float driveSpeed, float turnSpeed, bool square)
 void Drivebase::stop()
 {
 	m_diffDrive.StopMotor();
+}
+
+frc2::CommandPtr Drivebase::driveCmd(float speed)
+{
+	return this->Run(std::bind(&Drivebase::arcadeDrive, this, speed, 0.0, false));
+}
+
+frc2::CommandPtr Drivebase::driveTimedCmd(float speed, units::second_t time)
+{
+	return driveCmd(speed).WithTimeout(time);
 }
 
 frc2::CommandPtr Drivebase::moveCmd(units::meter_t distance, units::degree_t angle)
@@ -87,4 +106,18 @@ frc2::CommandPtr Drivebase::moveCmd(units::meter_t distance, units::degree_t ang
 
 		arcadeDrive(driveSpeed, turnSpeed, false);
 	}).Until([this] { return m_drivePID.AtGoal() && m_turnPID.AtGoal(); }));
+}
+
+frc2::CommandPtr Drivebase::driveDumbCmd(float speed, units::meter_t distance)
+{
+	return this->RunOnce([this] {
+		m_odometry.reset();
+	}).AndThen(this->Run([this, speed] {
+		arcadeDrive(speed, 0.f, false);
+	}).Until([this, distance] { return std::abs(m_odometry.getAvgDistance().value()) > std::abs(distance.value()); }));
+}
+
+frc2::CommandPtr Drivebase::stopCmd()
+{
+	return this->Run(std::bind(&Drivebase::stop, this));
 }

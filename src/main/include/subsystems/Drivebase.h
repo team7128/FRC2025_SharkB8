@@ -32,7 +32,10 @@ public:
 
 	void stop();
 
+	frc2::CommandPtr driveCmd(float speed);
+	frc2::CommandPtr driveTimedCmd(float speed, units::second_t time);
 	frc2::CommandPtr moveCmd(units::meter_t distance, units::degree_t angle);
+	frc2::CommandPtr driveDumbCmd(float speed, units::meter_t distance);
 
 	frc2::CommandPtr stopCmd();
 
