@@ -34,7 +34,8 @@ void Climb::drive(float speed)
 
 frc2::CommandPtr Climb::driveCmd(float speed)
 {
-	return this->Run(std::bind(&Climb::drive, this, speed)).Until(std::bind(&frc::DigitalInput::Get, &m_limitSwitch));
+	return this->Run(std::bind(&Climb::drive, this, speed));
+	// .Until(std::bind(&frc::DigitalInput::Get, &m_limitSwitch))
 }
 
 void Climb::stop()

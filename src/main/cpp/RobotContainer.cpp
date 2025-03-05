@@ -56,16 +56,16 @@ void RobotContainer::ConfigureBindings()
 	// Right bumper to bring arm out
 	// A to bring cage in slowly
 	// Left bumper to bring cage in at full speed
-	m_driverController.RightBumper().WhileTrue(m_climb.driveCmd(-0.2f));
-	m_driverController.A().WhileTrue(m_climb.driveCmd(0.4f));
-	m_driverController.LeftBumper().WhileTrue(m_climb.driveCmd(1.0f));
+	m_driverController.RightBumper().WhileTrue(m_climb.driveCmd(0.2f));
+	m_driverController.A().WhileTrue(m_climb.driveCmd(-0.4f));
+	m_driverController.LeftBumper().WhileTrue(m_climb.driveCmd(-1.0f));
 
 	// Release the intake ramp by pressing Start and Back
 	frc2::Trigger rampReleaseTrigger = m_driverController.Start() && m_driverController.Back();
 	rampReleaseTrigger.OnTrue(m_climb.releaseCmd());
 	rampReleaseTrigger.OnFalse(m_climb.unreleaseCmd());
 
-	// ===== LIFT CONTROLLER =====
+	// ===== LIFT CONTROLLER =====/
 
 	// Drive at variable speeds with left stick up/down
 	m_liftController.AxisMagnitudeGreaterThan(1, 0.1)

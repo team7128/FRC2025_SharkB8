@@ -33,10 +33,11 @@ namespace CANConstants
 namespace UserConstants
 {
 	constexpr inline unsigned int kDriverControllerIndex = 0;
+	
 	constexpr inline unsigned int kLiftControllerIndex = 1;
 
-	constexpr inline float kDriveMult = 0.3f,
-		kTurnMult = 0.4f;
+	constexpr inline float kDriveMult = 0.4f,
+		kTurnMult = 0.5f;
 }
 
 namespace DrivebaseConstants
@@ -64,7 +65,7 @@ namespace DrivebaseConstants
 
 namespace LiftConstants
 {
-	inline float kLiftPresets[] = { 33.f, 67.f, 107.f };
+	inline float kLiftPresets[] = { 40.f, 69.f, 108.f };
 
 	/**
 	 * Feedforward values for the low and high points
