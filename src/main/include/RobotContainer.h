@@ -23,7 +23,7 @@ public:
 	void Enable();
 	void Disable();
 
-private:
+//private:
 	void ConfigureBindings();
 
 	frc2::CommandXboxController m_driverController, m_liftController;

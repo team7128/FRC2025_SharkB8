@@ -37,7 +37,7 @@ public:
 	frc2::CommandPtr enableLimitsCmd();
 	frc2::CommandPtr disableLimitsCmd();
 
-private:
+//private:
 	rev::spark::SparkMax m_leftWinch, m_rightWinch;
 	SparkPIDTuner m_sparkTuner;
 	frc2::CommandPtr m_homeCmd;

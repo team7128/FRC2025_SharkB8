@@ -24,21 +24,43 @@ RobotContainer::RobotContainer() :
 	ConfigureBindings();
 	SetupTestCommands();
 	frc::CameraServer::StartAutomaticCapture(0);
+	frc::CameraServer::StartAutomaticCapture(1);
+	
 }
 
 void RobotContainer::ConfigureBindings()
 {
 	// ===== DRIVER CONTROLLER =====
 
+	//float liftedSpeed = (0.0f);
+
 	m_drivebase.SetDefaultCommand(frc2::RunCommand([this]
 		{
+			
 			float driveSpeed = (-m_driverController.GetLeftY()) * std::sqrt(UserConstants::kDriveMult);
 			float turnSpeed = (-m_driverController.GetRightX()) * std::sqrt(UserConstants::kTurnMult);
 
 			m_drivebase.arcadeDrive(driveSpeed, turnSpeed, true);
+
+			
+
+	/*if (m_lift.m_feedforwardTuneData.positionTarget > 5)
+			{
+				liftedSpeed = 0.6f;
+			}
+			else 
+			{
+			liftedSpeed = 1.0f;
+			} */
+	
 		},
 		{ &m_drivebase }
 	).ToPtr());
+
+	
+
+
+
 	/*
 	m_driverController.A().WhileTrue(frc2::RunCommand([this] {
 		m_drivebase.arcadeDrive(0.2f, 0, false);
@@ -61,7 +83,7 @@ void RobotContainer::ConfigureBindings()
 	m_driverController.LeftBumper().WhileTrue(m_climb.driveCmd(-1.0f));
 
 	// Release the intake ramp by pressing Start and Back
-	frc2::Trigger rampReleaseTrigger = m_driverController.Start() && m_driverController.Back();
+	frc2::Trigger rampReleaseTrigger = m_liftController.Start() && m_liftController.Back();
 	rampReleaseTrigger.OnTrue(m_climb.releaseCmd());
 	rampReleaseTrigger.OnFalse(m_climb.unreleaseCmd());
 
@@ -71,11 +93,11 @@ void RobotContainer::ConfigureBindings()
 	m_liftController.AxisMagnitudeGreaterThan(1, 0.1)
 		.WhileTrue(m_lift.Run([this] {
 			m_lift.driveDirect(-m_liftController.GetLeftY());
-		}));
+		}));	
 
 	// Drive at set speed with D-pad up/down
-	m_liftController.POVUp().WhileTrue(m_lift.moveCmd(0.3f));
-	m_liftController.POVDown().WhileTrue(m_lift.moveCmd(-0.3f));
+	//m_liftController.POVUp().WhileTrue(m_lift.moveCmd(0.3f));
+	//m_liftController.POVDown().WhileTrue(m_lift.moveCmd(-0.3f));
 
 	// Hold start to disable lower limit and realign the bottom of the lift
 	m_liftController.Back().OnTrue(m_lift.disableLimitsCmd());
@@ -99,7 +121,7 @@ void RobotContainer::ConfigureBindings()
 }
 
 frc2::CommandPtr RobotContainer::GetAutonomousCommand() {
-	return m_drivebase.driveTimedCmd(-0.2, 1.5_s);
+	return m_drivebase.driveTimedCmd(-0.20, 5.5_s);
 }
 
 void RobotContainer::SetupTestCommands()
