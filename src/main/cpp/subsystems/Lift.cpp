@@ -96,6 +96,11 @@ void Lift::driveVoltage(units::volt_t voltage, bool useFeedforward)
 	m_rightWinch.SetVoltage(voltage);
 }
 
+float Lift::getHeight()
+{
+	return (m_leftWinch.GetEncoder().GetPosition() + m_rightWinch.GetEncoder().GetPosition()) / 2.f;
+}
+
 frc2::CommandPtr Lift::resetEncodersCmd()
 {
 	return this->RunOnce([this] {

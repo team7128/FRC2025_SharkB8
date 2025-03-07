@@ -38,6 +38,9 @@ namespace UserConstants
 
 	constexpr inline float kDriveMult = 0.4f,
 		kTurnMult = 0.5f;
+
+	// Drive speed multiplier for when the lift is extended
+	constexpr inline float kLiftExtendSlowdown = 0.4f;
 }
 
 namespace DrivebaseConstants

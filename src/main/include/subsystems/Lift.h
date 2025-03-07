@@ -24,6 +24,8 @@ public:
 	void driveDirect(float speed);
 	void driveVoltage(units::volt_t voltage, bool useFeedforward = true);
 
+	float getHeight();
+
 	frc2::CommandPtr resetEncodersCmd();
 
 	frc2::CommandPtr homeCmd();

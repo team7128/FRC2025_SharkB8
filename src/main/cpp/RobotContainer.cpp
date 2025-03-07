@@ -32,34 +32,17 @@ void RobotContainer::ConfigureBindings()
 {
 	// ===== DRIVER CONTROLLER =====
 
-	//float liftedSpeed = (0.0f);
-
 	m_drivebase.SetDefaultCommand(frc2::RunCommand([this]
 		{
-			
-			float driveSpeed = (-m_driverController.GetLeftY()) * std::sqrt(UserConstants::kDriveMult);
-			float turnSpeed = (-m_driverController.GetRightX()) * std::sqrt(UserConstants::kTurnMult);
+			float elevatorSlowdown = m_lift.getHeight() > 5.f ? UserConstants::kLiftExtendSlowdown : 1.f;
+
+			float driveSpeed = (-m_driverController.GetLeftY()) * std::sqrt(UserConstants::kDriveMult * elevatorSlowdown);
+			float turnSpeed = (-m_driverController.GetRightX()) * std::sqrt(UserConstants::kTurnMult * elevatorSlowdown);
 
 			m_drivebase.arcadeDrive(driveSpeed, turnSpeed, true);
-
-			
-
-	/*if (m_lift.m_feedforwardTuneData.positionTarget > 5)
-			{
-				liftedSpeed = 0.6f;
-			}
-			else 
-			{
-			liftedSpeed = 1.0f;
-			} */
-	
 		},
 		{ &m_drivebase }
 	).ToPtr());
-
-	
-
-
 
 	/*
 	m_driverController.A().WhileTrue(frc2::RunCommand([this] {

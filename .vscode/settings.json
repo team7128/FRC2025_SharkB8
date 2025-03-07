@@ -19,7 +19,8 @@
     "chrono": "cpp",
     "functional": "cpp",
     "complex": "cpp",
-    "*.inc": "cpp"
+    "*.inc": "cpp",
+    "cmath": "cpp"
   },
   "wpilib.selectDefaultSimulateExtension": false,
   "wpilib.autoStartRioLog": false
