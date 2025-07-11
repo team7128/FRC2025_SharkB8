@@ -12,11 +12,12 @@
 
 #include "Constants.h"
 #include "util/SparkPIDTuner.h"
+#include "subsystems/Intake.h"
 
 class Lift : public frc2::SubsystemBase
 {
 public:
-	Lift();
+	Lift(Intake &intake);
 
 	virtual void Periodic() override;
 	virtual void SimulationPeriodic() override;
@@ -30,7 +31,7 @@ public:
 
 	frc2::CommandPtr homeCmd();
 	frc2::CommandPtr moveCmd(float speed);
-	frc2::CommandPtr moveToPosCmd(float position, bool useFeedforward = true);
+	frc2::CommandPtr moveToPosCmd(float position, bool useFeedforward = true, bool end = true);
 	frc2::CommandPtr stopCmd();
 	frc2::CommandPtr holdPosCmd();
 
@@ -43,6 +44,7 @@ public:
 	rev::spark::SparkMax m_leftWinch, m_rightWinch;
 	SparkPIDTuner m_sparkTuner;
 	frc2::CommandPtr m_homeCmd;
+	frc2::CommandPtr m_intakeMoveCmd;
 
 	void enableLimits();
 	void disableLimits();

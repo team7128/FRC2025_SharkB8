@@ -8,6 +8,11 @@
 
 #include <rev/ClosedLoopSlot.h>
 
+namespace DIO_Constants
+{
+	constexpr inline unsigned int kBeambreakPort = 0;
+}
+
 namespace CANConstants
 {
 	constexpr inline unsigned int kSparkDriveIDs[4] = {
@@ -28,6 +33,8 @@ namespace CANConstants
 	};
 
 	inline constexpr unsigned int kAlignerTalonID = 1;
+
+	inline constexpr unsigned int kIntakeVictorID = 3;
 }
 
 namespace UserConstants
@@ -41,6 +48,8 @@ namespace UserConstants
 
 	// Drive speed multiplier for when the lift is extended
 	constexpr inline float kLiftExtendSlowdown = 0.4f;
+
+	constexpr inline double kLiftManualSensitivity = 0.3;
 }
 
 namespace DrivebaseConstants
@@ -68,25 +77,25 @@ namespace DrivebaseConstants
 
 namespace LiftConstants
 {
-	inline float kLiftPresets[] = { 40.f, 69.f, 108.f };
+	inline float kLiftPresets[] = { 19.f, 49.f, 97.f, 103.f };
 
 	/**
 	 * Feedforward values for the low and high points
 	 * To deal with different weights on first and second stage
 	 */
-	inline constexpr float kGravityFeedforwardLow = 0.2f,
-		kGravityFeedforwardHigh = 0.5f;
+	inline constexpr float kGravityFeedforwardLow = 0.27f,
+		kGravityFeedforwardHigh = 0.34f;
 	// Height to change from low to high feedforward
 	inline constexpr float kGravityHeightThreshold = 60.f;
 
 	// Elevator PID parameters
-	inline constexpr float kP = 0.01f,
+	inline constexpr float kP = 0.2f,
 		kI = 0.f,
-		kD = 0.f;
+		kD = 0.6f;
 
 	// In RPM and RPM/sec
-	inline constexpr float kMaxSpeed = 3000.f,
-		kMaxAccel = 20'000.f;
+	inline constexpr float kMaxSpeed = 5000.f,
+		kMaxAccel = kMaxSpeed * 4;
 	
 	// PID parameters for feedforward auto-tune
 	inline constexpr float tune_kP = 0.08f,
@@ -97,7 +106,7 @@ namespace LiftConstants
 
 namespace ClimbConstants
 {
-	inline constexpr int kLimitSwitchPort = 0,
+	inline constexpr int kLimitSwitchPort = 1,
 		kServoPort = 0;
 }
 

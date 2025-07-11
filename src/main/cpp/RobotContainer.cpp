@@ -15,17 +15,26 @@
 #include <cameraserver/CameraServer.h>
 
 #include "Constants.h"
+#include "AutoSequences.h"
 
 RobotContainer::RobotContainer() :
-	m_driverController(UserConstants::kDriverControllerIndex),
-	m_liftController(UserConstants::kLiftControllerIndex),
-	m_liftDisableCmd(m_lift.stopCmd())
+	m_driverController(UserConstants::kDriverControllerIndex)
+	, m_liftController(UserConstants::kLiftControllerIndex)
+	, m_intake(true)
+	, m_lift(m_intake)
+	, m_liftDisableCmd(m_lift.stopCmd())
 {
 	ConfigureBindings();
 	SetupTestCommands();
+	
 	frc::CameraServer::StartAutomaticCapture(0);
 	frc::CameraServer::StartAutomaticCapture(1);
-	
+
+	m_autoChooser.SetDefaultOption("Mobility", AutoSequence::Mobility);
+	m_autoChooser.AddOption("Trough Bump", AutoSequence::TroughBump);
+	m_autoChooser.AddOption("Score Coral", AutoSequence::CoralScore);
+
+	frc::SmartDashboard::PutData("Auto Sequence", &m_autoChooser);
 }
 
 void RobotContainer::ConfigureBindings()
@@ -66,17 +75,17 @@ void RobotContainer::ConfigureBindings()
 	m_driverController.LeftBumper().WhileTrue(m_climb.driveCmd(-1.0f));
 
 	// Release the intake ramp by pressing Start and Back
-	frc2::Trigger rampReleaseTrigger = m_liftController.Start() && m_liftController.Back();
+	frc2::Trigger rampReleaseTrigger = m_driverController.Start() && m_driverController.Back();
 	rampReleaseTrigger.OnTrue(m_climb.releaseCmd());
 	rampReleaseTrigger.OnFalse(m_climb.unreleaseCmd());
 
 	// ===== LIFT CONTROLLER =====/
 
-	// Drive at variable speeds with left stick up/down
+	// Use left stick up/down to drive lift manually
 	m_liftController.AxisMagnitudeGreaterThan(1, 0.1)
 		.WhileTrue(m_lift.Run([this] {
-			m_lift.driveDirect(-m_liftController.GetLeftY());
-		}));	
+			m_lift.driveDirect(-m_liftController.GetLeftY() * UserConstants::kLiftManualSensitivity);
+		}));
 
 	// Drive at set speed with D-pad up/down
 	//m_liftController.POVUp().WhileTrue(m_lift.moveCmd(0.3f));
@@ -91,20 +100,24 @@ void RobotContainer::ConfigureBindings()
 	m_liftController.A().OnTrue(m_lift.moveToPosCmd(LiftConstants::kLiftPresets[0]));
 	m_liftController.X().OnTrue(m_lift.moveToPosCmd(LiftConstants::kLiftPresets[1]));
 	m_liftController.Y().OnTrue(m_lift.moveToPosCmd(LiftConstants::kLiftPresets[2]));
-	m_liftController.B().OnTrue(m_lift.moveToPosCmd(0.f));
+	m_liftController.B().OnTrue(m_lift.moveToPosCmd(0));
 
-	// Move coral aligner left/right with the right stick left/right
-	m_liftController.AxisMagnitudeGreaterThan(4, 0.1)
-		.WhileTrue(m_aligner.Run([this] {
-			m_aligner.drive(m_liftController.GetRightX());
-		}));
-
-	// Return aligner to intake position with start
-	m_liftController.Start().OnTrue(m_aligner.returnCmd());
+	m_liftController.LeftBumper().WhileTrue(m_intake.drive(1.0));
+	m_liftController.RightBumper().WhileTrue(m_intake.drive(-1.0));
 }
 
 frc2::CommandPtr RobotContainer::GetAutonomousCommand() {
-	return m_drivebase.driveTimedCmd(-0.20, 5.5_s);
+	switch (m_autoChooser.GetSelected())
+	{
+	case AutoSequence::Mobility:
+		return m_drivebase.driveTimedCmd(-0.4, 1_s);
+	case AutoSequence::TroughBump:
+		return m_drivebase.driveTimedCmd(-0.2, 5.5_s);
+	case AutoSequence::CoralScore:
+		return m_drivebase.driveTimedCmd(0.2, 5.5_s).AndThen(Autos::autoScore(2, m_drivebase, m_lift, m_intake));
+	}
+
+	return frc2::cmd::None();
 }
 
 void RobotContainer::SetupTestCommands()
@@ -112,6 +125,13 @@ void RobotContainer::SetupTestCommands()
 	static frc2::CommandPtr tuneCmd = m_lift.tuneFeedforwardCmd();
 	frc::SmartDashboard::PutData("TuneLiftFeedforward", tuneCmd.get());
 	frc::SmartDashboard::PutData("Lift Subsystem", &m_lift);
+
+	static frc2::CommandPtr partialIntakeCmd = m_intake.partialIntakeCmd(),
+		fullIntakeCmd = m_intake.fullIntakeCmd(),
+		releaseCmd = m_intake.releaseCmd();
+	frc::SmartDashboard::PutData("Partial Intake", partialIntakeCmd.get());
+	frc::SmartDashboard::PutData("Full Intake", fullIntakeCmd.get());
+	frc::SmartDashboard::PutData("Release Game Piece", releaseCmd.get());
 
 	frc::SmartDashboard::SetDefaultNumber(m_targetHeightKey, m_targetHeight);
 	static frc2::CommandPtr heightTestCmd = m_lift.Defer([this] {
