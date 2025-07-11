@@ -27,12 +27,21 @@ RobotContainer::RobotContainer() :
 	ConfigureBindings();
 	SetupTestCommands();
 	
+	// Add cameras to dashboard
 	frc::CameraServer::StartAutomaticCapture(0);
 	frc::CameraServer::StartAutomaticCapture(1);
 
+	// Add starting position chooser
+	m_autoDriveTimeChooser.SetDefaultOption("Center", 3_s);
+	m_autoDriveTimeChooser.AddOption("Sides", 6_s);
+
+	frc::SmartDashboard::PutData("Starting position", &m_autoDriveTimeChooser);
+
+	// Set up dahsboard selector for auto routine
 	m_autoChooser.SetDefaultOption("Mobility", AutoSequence::Mobility);
 	m_autoChooser.AddOption("Trough Bump", AutoSequence::TroughBump);
-	m_autoChooser.AddOption("Score Coral", AutoSequence::CoralScore);
+	m_autoChooser.AddOption("Score Coral High", AutoSequence::CoralScoreHigh);
+	m_autoChooser.AddOption("Score Coral Low", AutoSequence::CoralScoreLow);
 
 	frc::SmartDashboard::PutData("Auto Sequence", &m_autoChooser);
 }
@@ -41,6 +50,7 @@ void RobotContainer::ConfigureBindings()
 {
 	// ===== DRIVER CONTROLLER =====
 
+	// Default set the drivebase to drive with the joysticks by default
 	m_drivebase.SetDefaultCommand(frc2::RunCommand([this]
 		{
 			float elevatorSlowdown = m_lift.getHeight() > 5.f ? UserConstants::kLiftExtendSlowdown : 1.f;
@@ -102,19 +112,24 @@ void RobotContainer::ConfigureBindings()
 	m_liftController.Y().OnTrue(m_lift.moveToPosCmd(LiftConstants::kLiftPresets[2]));
 	m_liftController.B().OnTrue(m_lift.moveToPosCmd(0));
 
+	// Bumpers to manually control intake
 	m_liftController.LeftBumper().WhileTrue(m_intake.drive(1.0));
 	m_liftController.RightBumper().WhileTrue(m_intake.drive(-1.0));
 }
 
 frc2::CommandPtr RobotContainer::GetAutonomousCommand() {
+	units::second_t driveTime = m_autoDriveTimeChooser.GetSelected();
+
 	switch (m_autoChooser.GetSelected())
 	{
 	case AutoSequence::Mobility:
 		return m_drivebase.driveTimedCmd(-0.4, 1_s);
 	case AutoSequence::TroughBump:
-		return m_drivebase.driveTimedCmd(-0.2, 5.5_s);
-	case AutoSequence::CoralScore:
-		return m_drivebase.driveTimedCmd(0.2, 5.5_s).AndThen(Autos::autoScore(2, m_drivebase, m_lift, m_intake));
+		return m_drivebase.driveTimedCmd(-0.2, driveTime);
+	case AutoSequence::CoralScoreHigh:
+		return m_drivebase.driveTimedCmd(0.2, driveTime).AndThen(Autos::autoScore(2, m_drivebase, m_lift, m_intake));
+	case AutoSequence::CoralScoreLow:
+		return m_drivebase.driveTimedCmd(0.2, driveTime).AndThen(Autos::autoScore(0, m_drivebase, m_lift, m_intake));
 	}
 
 	return frc2::cmd::None();

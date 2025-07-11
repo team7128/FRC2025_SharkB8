@@ -12,7 +12,6 @@
 #include "subsystems/Drivebase.h"
 #include "subsystems/Lift.h"
 #include "subsystems/Climb.h"
-#include "subsystems/CoralAligner.h"
 #include "subsystems/Intake.h"
 
 class RobotContainer
@@ -22,30 +21,37 @@ public:
 
 	frc2::CommandPtr GetAutonomousCommand();
 
+	// Put additional test commands on the dashboard
 	void SetupTestCommands();
 	void Enable();
 	void Disable();
 
 private:
+	// Set up controller bindings to control parts of the robot
 	void ConfigureBindings();
 
 	frc2::CommandXboxController m_driverController, m_liftController;
 
+	// Sybsystems
 	Drivebase m_drivebase;
 	Intake m_intake;
 	Lift m_lift;
 	Climb m_climb;
-	CoralAligner m_aligner;
-	
-	frc2::CommandPtr m_liftDisableCmd;
-
-	const std::string m_targetHeightKey = "Target Height";
-	float m_targetHeight = 0;
 
 	enum class AutoSequence
 	{
-		Mobility, TroughBump, CoralScore
+		Mobility, TroughBump, CoralScoreHigh, CoralScoreLow
 	};
 
+	// Dashboard selector for initial drive time
+	frc::SendableChooser<units::second_t> m_autoDriveTimeChooser;
+
+	// Dashboard selector object for auto routines
 	frc::SendableChooser<AutoSequence> m_autoChooser;
+	
+	frc2::CommandPtr m_liftDisableCmd;
+
+	// For automatic height testing
+	const std::string m_targetHeightKey = "Target Height";
+	float m_targetHeight = 0;
 };

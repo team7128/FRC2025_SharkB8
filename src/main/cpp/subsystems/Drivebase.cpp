@@ -35,22 +35,27 @@ Drivebase::Drivebase() :
 
 	m_odometry.reset();
 
+	// Motors break by default
 	leftSparkConfig.SetIdleMode(SparkBaseConfig::IdleMode::kBrake);
 	// leftSparkConfig.SmartCurrentLimit(20, 10, 0);
 
 	units::meter_t distancePerRev = DrivebaseConstants::kWheelDiameter * std::numbers::pi * DrivebaseConstants::kGearboxRatio;
 
+	// Set the encoreds to return meters and meters/sec as their units
 	leftSparkConfig.encoder.PositionConversionFactor(distancePerRev.value())
 		.VelocityConversionFactor(distancePerRev.value() / 60.0);
 
+	// Copy left spark config into right spark config
 	rightSparkConfig.Apply(leftSparkConfig);
 
 	leftSparkConfig.Inverted(false);
 	rightSparkConfig.Inverted(true);
 
+	// Apply settings to front set of sparks
 	m_motorFL.Configure(leftSparkConfig, SparkBase::ResetMode::kResetSafeParameters, SparkBase::PersistMode::kPersistParameters);
 	m_motorFR.Configure(rightSparkConfig, SparkBase::ResetMode::kResetSafeParameters, SparkBase::PersistMode::kPersistParameters);
 
+	// Make the rear sparks follow the front ones
 	leftSparkConfig.Follow(m_motorFL, false);
 	rightSparkConfig.Follow(m_motorFR, false);
 
@@ -95,26 +100,30 @@ frc2::CommandPtr Drivebase::driveTimedCmd(float speed, units::second_t time)
 frc2::CommandPtr Drivebase::moveCmd(units::meter_t distance, units::degree_t angle)
 {
 	return this->RunOnce([this, distance, angle] {
-		m_drivePID.Reset(m_odometry.getAvgDistance());
-		m_turnPID.Reset(m_odometry.getAngle());
-		
-		m_drivePID.SetGoal(distance + m_odometry.getAvgDistance());
-		m_turnPID.SetGoal(angle);
-	}).AndThen(this->Run([this] {
-		auto driveSpeed = m_drivePID.Calculate(m_odometry.getAvgDistance());
-		auto turnSpeed = m_turnPID.Calculate(m_odometry.getAngle());
+			m_drivePID.Reset(m_odometry.getAvgDistance());
+			m_turnPID.Reset(m_odometry.getAngle());
+			
+			m_drivePID.SetGoal(distance + m_odometry.getAvgDistance());
+			m_turnPID.SetGoal(angle);
+		})
+		.AndThen(this->Run([this] {
+			auto driveSpeed = m_drivePID.Calculate(m_odometry.getAvgDistance());
+			auto turnSpeed = m_turnPID.Calculate(m_odometry.getAngle());
 
-		arcadeDrive(driveSpeed, turnSpeed, false);
-	}).Until([this] { return m_drivePID.AtGoal() && m_turnPID.AtGoal(); }));
+			arcadeDrive(driveSpeed, turnSpeed, false);
+		})
+			.Until([this] { return m_drivePID.AtGoal() && m_turnPID.AtGoal(); }));
 }
 
 frc2::CommandPtr Drivebase::driveDumbCmd(float speed, units::meter_t distance)
 {
 	return this->RunOnce([this] {
-		m_odometry.reset();
-	}).AndThen(this->Run([this, speed] {
-		arcadeDrive(speed, 0.f, false);
-	}).Until([this, distance] { return std::abs(m_odometry.getAvgDistance().value()) > std::abs(distance.value()); }));
+			m_odometry.reset();
+		})
+		.AndThen(this->Run([this, speed] {
+			arcadeDrive(speed, 0.f, false);
+		})
+			.Until([this, distance] { return std::abs(m_odometry.getAvgDistance().value()) > std::abs(distance.value()); }));
 }
 
 frc2::CommandPtr Drivebase::stopCmd()

@@ -43,12 +43,14 @@ namespace UserConstants
 	
 	constexpr inline unsigned int kLiftControllerIndex = 1;
 
+	// Sensitivity multipliers for driving
 	constexpr inline float kDriveMult = 0.4f,
 		kTurnMult = 0.5f;
 
 	// Drive speed multiplier for when the lift is extended
 	constexpr inline float kLiftExtendSlowdown = 0.4f;
 
+	// Speed multiplier for manually driving the lift with the joystick
 	constexpr inline double kLiftManualSensitivity = 0.3;
 }
 
@@ -77,7 +79,9 @@ namespace DrivebaseConstants
 
 namespace LiftConstants
 {
-	inline float kLiftPresets[] = { 19.f, 49.f, 97.f, 103.f };
+	// Lift height presets for the different reef levels
+	// Last value is for an additional "bump" to help score on the top
+	inline float kLiftPresets[] = { 19.f, 49.f, 96.f, 103.f };
 
 	/**
 	 * Feedforward values for the low and high points
@@ -89,9 +93,9 @@ namespace LiftConstants
 	inline constexpr float kGravityHeightThreshold = 60.f;
 
 	// Elevator PID parameters
-	inline constexpr float kP = 0.2f,
+	inline constexpr float kP = 0.25f,
 		kI = 0.f,
-		kD = 0.6f;
+		kD = 0.7f;
 
 	// In RPM and RPM/sec
 	inline constexpr float kMaxSpeed = 5000.f,
@@ -108,10 +112,4 @@ namespace ClimbConstants
 {
 	inline constexpr int kLimitSwitchPort = 1,
 		kServoPort = 0;
-}
-
-namespace AlignerConstants
-{
-	inline constexpr int kAlignerPDPSlot = 9;
-	inline constexpr float kAlignerStallCurrent = 15.f;
 }

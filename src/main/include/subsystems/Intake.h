@@ -13,8 +13,10 @@ class Intake : public frc2::SubsystemBase
 public:
     Intake(bool enableAutoCommands);
 
-    //
+    // Move intake at a set speed
     frc2::CommandPtr drive(double speed);
+
+    bool isGamePieceClear() const;
 
     // Partially grab the game piece
     frc2::CommandPtr partialIntakeCmd();

@@ -33,8 +33,11 @@ public:
 	void stop();
 
 	frc2::CommandPtr driveCmd(float speed);
+	// Drive at a set speed for a certain amount of time
 	frc2::CommandPtr driveTimedCmd(float speed, units::second_t time);
+	// Attempted PID driving
 	frc2::CommandPtr moveCmd(units::meter_t distance, units::degree_t angle);
+	// Drives forward until it moves the specified distance (no PID, bad stopping distance)
 	frc2::CommandPtr driveDumbCmd(float speed, units::meter_t distance);
 
 	frc2::CommandPtr stopCmd();

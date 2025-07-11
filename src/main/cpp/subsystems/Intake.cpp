@@ -24,6 +24,11 @@ Intake::Intake(bool enableAutoCommands) :
     }
 }
 
+bool Intake::isGamePieceClear() const
+{
+    return m_beambreak.Get();
+}
+
 frc2::CommandPtr Intake::drive(double speed)
 {
     return this->Run([this, speed] { m_intakeMotor.Set(ControlMode::PercentOutput, speed); });
@@ -32,8 +37,7 @@ frc2::CommandPtr Intake::drive(double speed)
 frc2::CommandPtr Intake::partialIntakeCmd()
 {
     return this->RunOnce([this] { m_gamePieceState = GamePieceState::Partial; }).OnlyIf([this] { return m_gamePieceState == GamePieceState::None; })
-        .AndThen(this->drive(0.8)).WithTimeout(0.4_s)
-            .WithInterruptBehavior(frc2::Command::InterruptionBehavior::kCancelIncoming);
+        .AndThen(this->drive(0.8)).WithTimeout(0.4_s);
 }
 
 frc2::CommandPtr Intake::fullIntakeCmd()
@@ -43,8 +47,7 @@ frc2::CommandPtr Intake::fullIntakeCmd()
         .AndThen(this->RunOnce([this] {
             m_intakeMotor.Set(ControlMode::Disabled, 0);
             m_gamePieceState = GamePieceState::Full;
-        }))
-            .WithInterruptBehavior(frc2::Command::InterruptionBehavior::kCancelIncoming);
+        }));
 }
 
 frc2::CommandPtr Intake::releaseCmd()
